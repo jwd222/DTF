@@ -13,6 +13,8 @@ from drone_traffic.core.config import AppConfig
 from drone_traffic.core.registry import build_component
 from drone_traffic.core.types import Detection, TelemetryMessage
 from drone_traffic.ingestion.reader import VideoReader
+from drone_traffic.models import efficient_sam3, yolo_head  # noqa: F401 – trigger registration
+from drone_traffic.tracking import bot_sort, cmc  # noqa: F401 – trigger registration
 
 logger = logging.getLogger(__name__)
 

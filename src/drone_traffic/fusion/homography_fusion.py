@@ -5,9 +5,9 @@ from typing import Any
 
 from drone_traffic.core.types import TelemetryMessage
 from drone_traffic.core.registry import register_fusion
+from drone_traffic.fusion.conflict_resolver import ConflictResolver
 from drone_traffic.fusion.engine_base import FusionInterface
 from drone_traffic.fusion.temporal_sync import TemporalSyncBuffer
-from drone_traffic.fusion.homography_fusion import HomographyFusion
 
 
 @register_fusion("homography")
@@ -24,11 +24,9 @@ class HomographyFusionEngine(FusionInterface):
             max_time_diff=max_time_sync_diff,
             sources_expected=2,
         )
-        self._homography_fusion = HomographyFusion(
-            homographies=homographies,
-            association_threshold=association_threshold,
-            conflict_policy=conflict_policy,
-        )
+        self._conflict_resolver = ConflictResolver(policy=conflict_policy)
+        self._association_threshold = association_threshold
+        self._homographies = homographies
         self._global_track_counter = 0
 
     def process(
@@ -41,9 +39,9 @@ class HomographyFusionEngine(FusionInterface):
         if synced is None:
             return {"global_tracks": [], "events": []}
 
-        return self._homography_fusion.fuse(synced)
+        return self._conflict_resolver.resolve(synced, homographies=self._homographies)
 
     def reset(self) -> None:
         self._sync_buffer.reset()
-        self._homography_fusion.reset()
+        self._conflict_resolver.reset()
         self._global_track_counter = 0

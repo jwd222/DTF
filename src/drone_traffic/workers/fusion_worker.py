@@ -9,6 +9,7 @@ import zmq
 from drone_traffic.core.config import AppConfig
 from drone_traffic.core.registry import build_component
 from drone_traffic.core.types import TelemetryMessage
+from drone_traffic.fusion import homography_fusion  # noqa: F401 – trigger registration
 
 logger = logging.getLogger(__name__)
 

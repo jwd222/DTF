@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
 from drone_traffic.api.routes import router
 
@@ -13,6 +14,10 @@ def create_app() -> FastAPI:
         version="0.1.0",
         description="API for querying multi-camera traffic monitoring data",
     )
+
+    @app.get("/", include_in_schema=False)
+    async def root() -> RedirectResponse:
+        return RedirectResponse(url="/docs")
 
     app.include_router(router, prefix="/api/v1")
 
