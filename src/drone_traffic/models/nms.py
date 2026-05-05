@@ -42,19 +42,17 @@ def _nms_single(
     if num_classes <= 0:
         return torch.zeros(0, pred.shape[1], device=pred.device)
 
-    class_conf, class_idx = pred[:, 4:].max(dim=1)
-    mask = class_conf > conf_threshold
+    scores = pred[:, 4]
+    mask = scores > conf_threshold
     if mask.sum() == 0:
         return torch.zeros(0, pred.shape[1], device=pred.device)
 
     filtered = pred[mask]
-    scores = class_conf[mask]
-    classes = class_idx[mask]
+    scores = scores[mask]
 
     order = scores.argsort(descending=True)[:max_detections]
     filtered = filtered[order]
     scores = scores[order]
-    classes = classes[order]
 
     x1 = filtered[:, 0] - filtered[:, 2] / 2
     y1 = filtered[:, 1] - filtered[:, 3] / 2

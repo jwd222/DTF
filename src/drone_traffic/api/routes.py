@@ -33,7 +33,7 @@ async def health() -> dict[str, Any]:
     if torch.cuda.is_available():
         gpu_info = {
             "gpu_name": torch.cuda.get_device_name(0),
-            "vram_total_mb": torch.cuda.get_device_properties(0).total_mem / (1024 ** 2),
+            "vram_total_mb": torch.cuda.get_device_properties(0).total_memory / (1024 ** 2),
             "vram_used_mb": torch.cuda.memory_allocated(0) / (1024 ** 2),
         }
     return {

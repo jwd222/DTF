@@ -21,11 +21,10 @@ def test_video_reader_fps_skip(sample_video):
 
 
 def test_video_reader_properties(sample_video):
-    with VideoReader(source=sample_video) as reader:
-        assert reader.total_frames == 0
+    reader = VideoReader(source=sample_video)
+    assert reader.total_frames == 0
 
     with VideoReader(source=sample_video) as reader:
-        reader.open()
         assert reader.total_frames > 0
         assert reader.source_fps > 0
 

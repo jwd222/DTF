@@ -30,5 +30,5 @@ def test_nms_below_threshold():
 
 def test_nms_batch():
     preds = torch.randn(2, 10, 10)
-    result = non_max_suppression(preds.unsqueeze(0), conf_threshold=0.0)
-    assert result.shape[0] == 1
+    result = non_max_suppression(preds, conf_threshold=0.0)
+    assert result.shape[0] == 2

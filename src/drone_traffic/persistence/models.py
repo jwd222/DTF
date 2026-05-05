@@ -56,10 +56,14 @@ class GlobalTrack(Base):
     class_label: Mapped[str | None] = mapped_column(String(50))
     first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    total_observations: Mapped[int] = mapped_column(Integer, default=0)
+    total_observations: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     avg_velocity: Mapped[float | None] = mapped_column(Float)
 
     __table_args__ = (UniqueConstraint("session_id", "global_id"),)
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("total_observations", 0)
+        super().__init__(**kwargs)
 
 
 class TrackObservation(Base):

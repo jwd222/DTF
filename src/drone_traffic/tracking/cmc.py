@@ -18,7 +18,7 @@ class ORBCMC:
         if self._detector is None:
             import cv2
 
-            self._detector = cv2.ORB_create(maxFeatures=self._max_features)
+            self._detector = cv2.ORB_create(nfeatures=self._max_features)
             self._matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     def compute(
