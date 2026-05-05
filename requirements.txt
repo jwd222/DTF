@@ -14,6 +14,3 @@ uvicorn>=0.32
 pyzmq>=26.0
 msgpack>=1.0
 protobuf>=5.0
---extra-index-url https://download.pytorch.org/whl/cu126
-torch>=2.5
-torchvision>=0.20
