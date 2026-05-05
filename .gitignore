@@ -31,3 +31,5 @@ htmlcov/
 .vscode/
 *.swp
 *.swo
+docs/
+plans/
