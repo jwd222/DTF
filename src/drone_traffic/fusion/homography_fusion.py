@@ -1,0 +1,49 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from typing import Any
+
+from drone_traffic.core.types import TelemetryMessage
+from drone_traffic.core.registry import register_fusion
+from drone_traffic.fusion.engine_base import FusionInterface
+from drone_traffic.fusion.temporal_sync import TemporalSyncBuffer
+from drone_traffic.fusion.homography_fusion import HomographyFusion
+
+
+@register_fusion("homography")
+class HomographyFusionEngine(FusionInterface):
+    def __init__(
+        self,
+        max_time_sync_diff: float = 0.05,
+        homographies: dict[str, Any] | None = None,
+        association_threshold: float = 2.0,
+        conflict_policy: str = "merge",
+        **kwargs,
+    ):
+        self._sync_buffer = TemporalSyncBuffer(
+            max_time_diff=max_time_sync_diff,
+            sources_expected=2,
+        )
+        self._homography_fusion = HomographyFusion(
+            homographies=homographies,
+            association_threshold=association_threshold,
+            conflict_policy=conflict_policy,
+        )
+        self._global_track_counter = 0
+
+    def process(
+        self, messages: dict[str, TelemetryMessage]
+    ) -> dict[str, Any]:
+        for source_id, msg in messages.items():
+            self._sync_buffer.add(source_id, msg)
+
+        synced = self._sync_buffer.try_flush()
+        if synced is None:
+            return {"global_tracks": [], "events": []}
+
+        return self._homography_fusion.fuse(synced)
+
+    def reset(self) -> None:
+        self._sync_buffer.reset()
+        self._homography_fusion.reset()
+        self._global_track_counter = 0

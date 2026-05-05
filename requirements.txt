@@ -1,0 +1,19 @@
+numpy>=1.26,<2.0
+opencv-python-headless>=4.10
+scipy>=1.14
+lapx>=0.5.9
+filterpy>=1.4.5
+pyyaml>=6.0
+python-dotenv>=1.0
+pydantic>=2.0
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
+asyncpg>=0.30
+fastapi>=0.115
+uvicorn>=0.32
+pyzmq>=26.0
+msgpack>=1.0
+protobuf>=5.0
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch>=2.5
+torchvision>=0.20

@@ -1,0 +1,79 @@
+system:
+  device: "cuda"
+  fp16: true
+  torch_compile: true
+  compile_mode: "reduce-overhead"
+  num_workers: 2
+
+input:
+  resolution: [640, 640]
+  target_fps: 30
+  letterbox: true
+  normalize: true
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+
+streams:
+  - name: "drone_1"
+    source: "data/sample_videos/drone1.mp4"
+    homography: "calib/drone1_homography.npy"
+  - name: "drone_2"
+    source: "data/sample_videos/drone2.mp4"
+    homography: "calib/drone2_homography.npy"
+
+models:
+  backbone:
+    type: "efficient_sam3"
+    weights: "weights/es_ev_l.pt"
+    frozen: true
+  detector:
+    type: "yolo_head"
+    num_classes: 6
+    conf_threshold: 0.25
+    iou_threshold: 0.45
+    max_detections: 300
+
+tracking:
+  type: "bot_sort"
+  max_age: 30
+  min_hits: 3
+  iou_threshold: 0.3
+  cmc:
+    method: "orb"
+    max_features: 500
+  reid:
+    enabled: false
+    weights: null
+
+fusion:
+  enabled: false
+  max_time_sync_diff: 0.05
+  homography_method: "predefined"
+  association:
+    metric: "mahalanobis"
+    threshold: 2.0
+  conflict_resolution:
+    policy: "merge"
+
+persistence:
+  db_url: "postgresql+asyncpg://drone:drone@localhost:5432/drone_traffic"
+  batch_size: 100
+  flush_interval: 0.5
+
+zmq:
+  telemetry_port: 5555
+  fusion_port: 5556
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: null
+
+output:
+  save_annotated: false
+  output_dir: "output/"
+  bev_canvas_size: [1000, 1000]
