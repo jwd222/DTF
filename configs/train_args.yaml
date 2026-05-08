@@ -3,7 +3,7 @@ data: configs/data.yaml
 
 epochs: 300
 imgsz: 960
-batch: 8
+batch: 2
 
 optimizer: MuSGD
 lr0: 0.01
@@ -24,15 +24,18 @@ degrees: 5.0
 translate: 0.1
 scale: 0.5
 fliplr: 0.5
+
 mosaic: 1.0
 mixup: 0.1
+close_mosaic: 10
+
 hsv_h: 0.015
 hsv_s: 0.7
 hsv_v: 0.4
 
 patience: 50
 save_period: 10
-workers: 8
+workers: 4
 project: runs/train
 name: yolo26_vehicle
 
@@ -40,3 +43,4 @@ device: 0
 seed: 42
 deterministic: false
 amp: true
+cache: false

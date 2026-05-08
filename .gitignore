@@ -31,5 +31,10 @@ htmlcov/
 .vscode/
 *.swp
 *.swo
-docs/
+
+# custome
+# docs/
 plans/
+.kilo/
+data/
+runs/
