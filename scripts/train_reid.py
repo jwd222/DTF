@@ -26,9 +26,9 @@ import os.path as osp
 try:
     import torch
     from torchreid import data as td
-    from torchreid.data import ImageDataset
-    from torchreid.engine import ImageTripletEngine
-    from torchreid.models import build_model
+    from torchreid.reid.data.datasets.dataset import ImageDataset
+    from torchreid.reid.engine.image import ImageTripletEngine
+    from torchreid.reid.models import build_model
 except ImportError:
     raise SystemExit("torchreid is required. Install with: pip install torchreid")
 
