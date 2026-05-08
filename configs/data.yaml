@@ -1,0 +1,14 @@
+path: data/vehicle_dataset
+train: images/train
+val: images/val
+test: images/test
+
+nc: 7
+names:
+  0: compact_car
+  1: suv
+  2: van
+  3: truck
+  4: bus
+  5: rickshaw
+  6: motorcycle

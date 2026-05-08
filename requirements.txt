@@ -14,3 +14,7 @@ uvicorn>=0.32
 pyzmq>=26.0
 msgpack>=1.0
 protobuf>=5.0
+ultralytics>=8.3.0
+onnx>=1.16
+onnxruntime-gpu>=1.18
+motmetrics>=1.4

@@ -77,3 +77,42 @@ def _greedy_assignment(
     unmatched_rows = [r for r in range(cost_matrix.shape[0]) if r not in used_rows]
     unmatched_cols = [c for c in range(cost_matrix.shape[1]) if c not in used_cols]
     return matches, unmatched_rows, unmatched_cols
+
+
+def cosine_distance(
+    track_features: np.ndarray, det_features: np.ndarray
+) -> np.ndarray:
+    if len(track_features) == 0 or len(det_features) == 0:
+        return np.zeros((len(track_features), len(det_features)))
+
+    track_norm = track_features / (
+        np.linalg.norm(track_features, axis=1, keepdims=True) + 1e-8
+    )
+    det_norm = det_features / (
+        np.linalg.norm(det_features, axis=1, keepdims=True) + 1e-8
+    )
+
+    similarity = track_norm @ det_norm.T
+    return 1.0 - similarity
+
+
+def combined_cost_matrix(
+    iou_cost: np.ndarray,
+    appearance_cost: np.ndarray,
+    iou_weight: float = 0.5,
+    appearance_weight: float = 0.5,
+    appearance_thresh: float = 0.25,
+    proximity_thresh: float = 0.5,
+) -> np.ndarray:
+    if iou_cost.shape != appearance_cost.shape:
+        return iou_cost
+
+    combined = iou_weight * iou_cost + appearance_weight * appearance_cost
+
+    iou_gate = iou_cost > (1.0 - proximity_thresh)
+    app_gate = appearance_cost > appearance_thresh
+
+    combined[iou_gate] = 1.0
+    combined[app_gate] = 1.0
+
+    return combined
