@@ -123,16 +123,22 @@ def main():
         transforms=["random_flip", "random_crop"],
     )
 
+    use_gpu = torch.cuda.is_available()
+    if use_gpu:
+        model = model.cuda()
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.epochs)
+
     engine = ImageTripletEngine(
         datamanager=datamanager,
         model=model,
-        optimizer="adam",
-        scheduler="single_step",
-        lr=args.lr,
-        max_epoch=args.epochs,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        use_gpu=use_gpu,
     )
 
-    engine.run()
+    engine.run(max_epoch=args.epochs)
 
     output_path = args.output
     os.makedirs(osp.dirname(output_path), exist_ok=True)
