@@ -81,6 +81,11 @@ def _run_on_images(image_paths, model, args):
     frame_count = 0
     total_time = 0.0
     writer = None
+    save_dir = None
+
+    if args.save_dir:
+        save_dir = Path(args.save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
 
     if args.output:
         first = cv2.imread(str(image_paths[0]))
@@ -131,6 +136,9 @@ def _run_on_images(image_paths, model, args):
         if writer:
             writer.write(annotated)
 
+        if save_dir:
+            cv2.imwrite(str(save_dir / img_path.name), annotated)
+
         if args.show:
             cv2.imshow("YOLOv26 Detection", annotated)
             if cv2.waitKey(0) & 0xFF == ord("q"):
@@ -144,7 +152,9 @@ def _run_on_images(image_paths, model, args):
     avg_fps = frame_count / max(total_time, 1e-6)
     print(f"\nProcessed {frame_count}/{len(image_paths)} images in {total_time:.2f}s (avg {avg_fps:.1f} FPS)")
     if args.output:
-        print(f"Output saved to: {args.output}")
+        print(f"Output video saved to: {args.output}")
+    if save_dir:
+        print(f"Annotated images saved to: {save_dir}")
 
 
 def _run_on_video(source, model, args):
@@ -219,8 +229,9 @@ def main():
     parser.add_argument("--imgsz", type=int, default=960, help="Inference image size")
     parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold")
     parser.add_argument("--iou", type=float, default=0.45, help="IoU threshold for NMS")
-    parser.add_argument("--output", type=str, default=None, help="Output video path")
-    parser.add_argument("--show", action="store_true", help="Display frames in window")
+    parser.add_argument("--output", type=str, default=None, help="Output video path or directory (for image sources)")
+    parser.add_argument("--show", action="store_true", help="Display frames in window (requires GUI)")
+    parser.add_argument("--save-dir", type=str, default=None, help="Save annotated images to this directory")
     parser.add_argument("--device", type=str, default="0", help="Device (0, cpu, etc.)")
     parser.add_argument("--tracker", type=str, default="botsort.yaml", help="Tracker config")
     parser.add_argument("--track", action="store_true", help="Enable tracking (only for video)")
