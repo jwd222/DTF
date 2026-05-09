@@ -42,16 +42,16 @@ class VisDroneReID(ImageDataset):
         self.root = osp.abspath(osp.expanduser(root))
         self.dataset_dir = osp.join(self.root, self.dataset_dir)
 
-        train = self._process_dir(osp.join(self.dataset_dir, "train"), relabel=True)
-        query = self._process_dir(osp.join(self.dataset_dir, "query"), relabel=False)
-        gallery = self._process_dir(osp.join(self.dataset_dir, "gallery"), relabel=False)
+        train = self._process_dir(osp.join(self.dataset_dir, "train"), relabel=True, camid=0)
+        query = self._process_dir(osp.join(self.dataset_dir, "query"), relabel=False, camid=1)
+        gallery = self._process_dir(osp.join(self.dataset_dir, "gallery"), relabel=False, camid=0)
 
         if not gallery and query:
-            gallery = query
+            gallery = [(p, pid, 0) for p, pid, _ in query]
 
         super().__init__(train, query, gallery, **kwargs)
 
-    def _process_dir(self, dir_path, relabel=False):
+    def _process_dir(self, dir_path, relabel=False, camid=0):
         data = []
         pid_container = set()
 
@@ -68,7 +68,7 @@ class VisDroneReID(ImageDataset):
             for img_name in os.listdir(pid_dir):
                 if not img_name.lower().endswith((".jpg", ".jpeg", ".png", ".bmp")):
                     continue
-                data.append((osp.join(pid_dir, img_name), pid, 0))
+                data.append((osp.join(pid_dir, img_name), pid, camid))
 
         if relabel:
             pid2label = {pid: label for label, pid in enumerate(sorted(pid_container))}
@@ -105,12 +105,24 @@ def main():
     num_classes = _count_identities(args.data_dir)
     print(f"Found {num_classes} identities in training data")
 
+    use_gpu = torch.cuda.is_available()
+
     model = build_model(
         name=args.model,
         num_classes=num_classes,
         loss=args.loss,
         pretrained=True,
+        use_gpu=use_gpu,
     )
+    if use_gpu:
+        model = model.cuda()
+
+    num_instances = 4
+    if args.batch_size % num_instances != 0:
+        raise ValueError(
+            f"batch_size ({args.batch_size}) must be divisible by "
+            f"num_instances ({num_instances})"
+        )
 
     datamanager = td.ImageDataManager(
         root=args.data_dir,
@@ -121,11 +133,10 @@ def main():
         batch_size_train=args.batch_size,
         batch_size_test=args.batch_size,
         transforms=["random_flip", "random_crop"],
+        train_sampler="RandomIdentitySampler",
+        num_instances=num_instances,
+        use_gpu=use_gpu,
     )
-
-    use_gpu = torch.cuda.is_available()
-    if use_gpu:
-        model = model.cuda()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.epochs)

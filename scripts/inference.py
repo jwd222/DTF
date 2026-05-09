@@ -23,13 +23,12 @@ COLORS = [
 ]
 
 VEHICLE_CLASSES = {
-    0: "compact_car",
-    1: "suv",
-    2: "van",
-    3: "truck",
+    0: "car",
+    1: "van",
+    2: "truck",
+    3: "rickshaw",
     4: "bus",
-    5: "rickshaw",
-    6: "motorcycle",
+    5: "motorcycle",
 }
 
 

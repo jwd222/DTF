@@ -33,7 +33,7 @@ class StreamConfig(BaseModel):
 class DetectorConfig(BaseModel):
     type: str = "yolo26_detector"
     weights: str = "yolo26s.pt"
-    num_classes: int = 7
+    num_classes: int = 6
     conf_threshold: float = 0.25
     iou_threshold: float = 0.45
     max_detections: int = 300

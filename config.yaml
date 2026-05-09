@@ -24,7 +24,7 @@ models:
   detector:
     type: "yolo26_detector"
     weights: "yolo26s.pt"
-    num_classes: 7
+    num_classes: 6
     conf_threshold: 0.25
     iou_threshold: 0.45
     max_detections: 300

@@ -206,16 +206,15 @@ def main():
     print(f"  Skipped (too small): {skipped_small}")
     print()
     print("Classes mapped (VisDrone 0-indexed -> YOLO):")
-    print("  3: car               -> 0: compact_car")
-    print("  4: van               -> 2: van")
-    print("  5: truck             -> 3: truck")
-    print("  6: tricycle          -> 5: rickshaw")
-    print("  7: awning-tricycle   -> 5: rickshaw")
+    print("  3: car               -> 0: car")
+    print("  4: van               -> 1: van")
+    print("  5: truck             -> 2: truck")
+    print("  6: tricycle          -> 3: rickshaw")
+    print("  7: awning-tricycle   -> 3: rickshaw")
     print("  8: bus               -> 4: bus")
-    print("  9: motor             -> 6: motorcycle")
+    print("  9: motor             -> 5: motorcycle")
     print()
     print("Ignored VisDrone classes: 0: pedestrian, 1: people, 2: bicycle")
-    print("NOTE: YOLO class 1 (suv) has no VisDrone equivalent.")
 
 
 if __name__ == "__main__":

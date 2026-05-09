@@ -13,13 +13,12 @@ from drone_traffic.models.detector_base import DetectorInterface
 logger = logging.getLogger(__name__)
 
 VEHICLE_CLASSES = {
-    0: "compact_car",
-    1: "suv",
-    2: "van",
-    3: "truck",
+    0: "car",
+    1: "van",
+    2: "truck",
+    3: "rickshaw",
     4: "bus",
-    5: "rickshaw",
-    6: "motorcycle",
+    5: "motorcycle",
 }
 
 
@@ -28,7 +27,7 @@ class YOLOv26Detector(DetectorInterface):
     def __init__(
         self,
         weights: str = "yolo26s.pt",
-        num_classes: int = 7,
+        num_classes: int = 6,
         conf_threshold: float = 0.25,
         iou_threshold: float = 0.45,
         max_detections: int = 300,

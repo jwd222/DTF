@@ -8,9 +8,9 @@ from drone_traffic.models.yolo26_detector import VEHICLE_CLASSES
 
 
 def test_vehicle_classes_defined():
-    assert len(VEHICLE_CLASSES) == 7
-    assert VEHICLE_CLASSES[0] == "compact_car"
-    assert VEHICLE_CLASSES[6] == "motorcycle"
+    assert len(VEHICLE_CLASSES) == 6
+    assert VEHICLE_CLASSES[0] == "car"
+    assert VEHICLE_CLASSES[5] == "motorcycle"
 
 
 def test_detector_forward_empty_results():
@@ -26,7 +26,7 @@ def test_detector_forward_empty_results():
         det._conf_threshold = 0.25
         det._iou_threshold = 0.45
         det._max_detections = 300
-        det._num_classes = 7
+        det._num_classes = 6
         det._device = "cpu"
 
         frame = np.zeros((640, 640, 3), dtype=np.uint8)
@@ -48,13 +48,13 @@ def test_detector_forward_with_detections():
         det._conf_threshold = 0.25
         det._iou_threshold = 0.45
         det._max_detections = 300
-        det._num_classes = 7
+        det._num_classes = 6
         det._device = "cpu"
 
         mock_boxes = MagicMock()
         mock_boxes.xyxy = torch.tensor([[100, 150, 200, 250], [300, 350, 400, 450]])
         mock_boxes.conf = torch.tensor([0.9, 0.6])
-        mock_boxes.cls = torch.tensor([0, 3])
+        mock_boxes.cls = torch.tensor([0, 2])
         mock_boxes.__len__ = MagicMock(return_value=2)
 
         mock_result = MagicMock()
@@ -74,9 +74,9 @@ def test_detector_forward_with_detections():
 
         assert len(results) == 2
         assert results[0].class_id == 0
-        assert results[0].class_label == "compact_car"
+        assert results[0].class_label == "car"
         assert abs(results[0].confidence - 0.9) < 1e-6
-        assert results[1].class_id == 3
+        assert results[1].class_id == 2
         assert results[1].class_label == "truck"
 
 
@@ -88,7 +88,7 @@ def test_detector_confidence_filtering():
         det._conf_threshold = 0.5
         det._iou_threshold = 0.45
         det._max_detections = 300
-        det._num_classes = 7
+        det._num_classes = 6
         det._device = "cpu"
 
         mock_result = MagicMock()
@@ -121,7 +121,7 @@ def test_detector_no_raw_frame_no_tensor():
         det._conf_threshold = 0.25
         det._iou_threshold = 0.45
         det._max_detections = 300
-        det._num_classes = 7
+        det._num_classes = 6
         det._device = "cpu"
         det._model = MagicMock()
 
@@ -142,7 +142,7 @@ def test_detector_class_id_out_of_range():
         det._conf_threshold = 0.25
         det._iou_threshold = 0.45
         det._max_detections = 300
-        det._num_classes = 7
+        det._num_classes = 6
         det._device = "cpu"
 
         mock_result = MagicMock()
