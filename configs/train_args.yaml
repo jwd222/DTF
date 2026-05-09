@@ -3,7 +3,7 @@ data: configs/data.yaml
 
 epochs: 300
 imgsz: 960
-batch: 2
+batch: 8
 
 optimizer: MuSGD
 lr0: 0.001
@@ -18,7 +18,6 @@ warmup_bias_lr: 0.1
 box: 7.5
 cls: 2.0
 dfl: 1.5
-fl_gamma: 2.0
 
 copy_paste: 0.0
 degrees: 3.0
@@ -36,7 +35,7 @@ hsv_v: 0.4
 
 patience: 80
 save_period: 10
-workers: 4
+workers: 8
 project: runs/train
 name: yolo26_vehicle
 

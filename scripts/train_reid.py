@@ -96,7 +96,8 @@ def main():
     parser.add_argument("--epochs", type=int, default=60, help="Number of training epochs")
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=0.0003, help="Learning rate")
-    parser.add_argument("--loss", type=str, default="triplet", help="Loss type: triplet or cross_entropy")
+    parser.add_argument("--loss", type=str, default="triplet+cross_entropy", help="Loss type: triplet, cross_entropy, or triplet+cross_entropy")
+    parser.add_argument("--margin", type=float, default=0.5, help="Triplet loss margin")
     parser.add_argument("--output", type=str, default="weights/osnet_reid.onnx", help="Output model path")
     args = parser.parse_args()
 
@@ -107,10 +108,11 @@ def main():
 
     use_gpu = torch.cuda.is_available()
 
+    model_loss = "triplet" if "triplet" in args.loss else "softmax"
     model = build_model(
         name=args.model,
         num_classes=num_classes,
-        loss=args.loss,
+        loss=model_loss,
         pretrained=True,
         use_gpu=use_gpu,
     )
@@ -139,12 +141,13 @@ def main():
     )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.epochs)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
 
     engine = ImageTripletEngine(
         datamanager=datamanager,
         model=model,
         optimizer=optimizer,
+        margin=args.margin,
         scheduler=scheduler,
         use_gpu=use_gpu,
     )
