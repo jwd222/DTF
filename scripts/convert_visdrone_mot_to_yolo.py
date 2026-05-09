@@ -13,6 +13,7 @@ YOLO label format (per line):
 from __future__ import annotations
 
 import argparse
+import random
 import shutil
 import struct
 import sys
@@ -69,12 +70,19 @@ def main():
     parser.add_argument("--output-dir", type=str, default="data/vehicle_dataset", help="Output YOLO dataset directory")
     parser.add_argument("--val-ratio", type=float, default=0.15, help="Fraction of sequences to use for validation")
     parser.add_argument("--copy-images", action="store_true", help="Copy images instead of creating symlinks")
+    parser.add_argument("--max-per-class", type=int, default=0, help="Cap instances per class (0 = no limit). Overrepresented classes are randomly undersampled per-frame.")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducible undersampling")
     args = parser.parse_args()
 
     input_dir = Path(args.input_dir)
     sequences_dir = input_dir / "sequences"
     annotations_dir = input_dir / "annotations"
     output_dir = Path(args.output_dir)
+
+    random.seed(args.seed)
+
+    if args.max_per_class > 0:
+        print(f"Undersampling: max {args.max_per_class} instances per class")
 
     if not sequences_dir.exists():
         raise FileNotFoundError(f"Sequences directory not found: {sequences_dir}")
@@ -103,9 +111,11 @@ def main():
         lbl_dir.mkdir(parents=True, exist_ok=True)
 
     stats = {"train": {"images": 0, "labels": 0}, "val": {"images": 0, "labels": 0}}
+    class_counts: dict[int, int] = {i: 0 for i in range(len(YOLO_NAMES))}
     skipped_no_ann = 0
     skipped_ignored = 0
     skipped_small = 0
+    skipped_undersample = 0
 
     for seq_name in sequence_names:
         split = "val" if seq_name in val_sequences else "train"
@@ -182,6 +192,16 @@ def main():
             anns = frame_anns.get(frame_id, [])
             lbl_path = lbl_dir_out / f"{seq_name}_{img_path.stem}.txt"
 
+            if args.max_per_class > 0:
+                kept = []
+                for ann in anns:
+                    cls_id = ann[0]
+                    if class_counts[cls_id] >= args.max_per_class:
+                        skipped_undersample += 1
+                        continue
+                    kept.append(ann)
+                anns = kept
+
             with open(lbl_path, "w") as f:
                 img_w, img_h = img_size_cache[img_path.stem]
                 for yolo_class, bx, by, bw, bh in anns:
@@ -190,6 +210,7 @@ def main():
                     norm_w = bw / img_w
                     norm_h = bh / img_h
                     f.write(f"{yolo_class} {x_center:.6f} {y_center:.6f} {norm_w:.6f} {norm_h:.6f}\n")
+                    class_counts[yolo_class] += 1
 
             stats[split]["images"] += 1
             stats[split]["labels"] += len(anns)
@@ -204,6 +225,12 @@ def main():
     print(f"  Skipped (no annotations): {skipped_no_ann}")
     print(f"  Skipped (ignored categories): {skipped_ignored}")
     print(f"  Skipped (too small): {skipped_small}")
+    if args.max_per_class > 0:
+        print(f"  Skipped (undersampled): {skipped_undersample}")
+        print()
+        print("Final class distribution:")
+        for cls_id, name in enumerate(YOLO_NAMES):
+            print(f"    {name}: {class_counts[cls_id]}")
     print()
     print("Classes mapped (VisDrone 0-indexed -> YOLO):")
     print("  3: car               -> 0: car")

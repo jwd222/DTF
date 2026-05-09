@@ -16,8 +16,9 @@ warmup_momentum: 0.8
 warmup_bias_lr: 0.1
 
 box: 7.5
-cls: 0.5
+cls: 2.0
 dfl: 1.5
+fl_gamma: 2.0
 
 copy_paste: 0.0
 degrees: 3.0
