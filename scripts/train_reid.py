@@ -158,7 +158,8 @@ def main():
     os.makedirs(osp.dirname(output_path), exist_ok=True)
 
     if output_path.endswith(".onnx"):
-        dummy = torch.randn(1, 3, 256, 128)
+        device = next(model.parameters()).device
+        dummy = torch.randn(1, 3, 256, 128, device=device)
         torch.onnx.export(
             model,
             dummy,

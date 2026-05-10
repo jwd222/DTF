@@ -3,9 +3,9 @@
 VisDrone MOT annotation format (per line):
     <frame_id>,<target_id>,<bbox_left>,<bbox_top>,<bbox_width>,<bbox_height>,<score>,<object_category>,<truncation>,<occlusion>
 
-    Raw MOT object_category matches the official VisDrone.yaml (0-indexed):
-    0: pedestrian, 1: people, 2: bicycle, 3: car, 4: van, 5: truck,
-    6: tricycle, 7: awning-tricycle, 8: bus, 9: motor
+    Raw MOT object_category (VisDrone MOT format):
+    0: ignored, 1: pedestrian, 2: people, 3: bicycle, 4: car, 5: van,
+    6: truck, 7: tricycle, 8: awning-tricycle, 9: bus, 10: motor, 11: others
 
 YOLO label format (per line):
     <class_id> <x_center> <y_center> <width> <height>  (all normalized 0-1)
@@ -232,16 +232,16 @@ def main():
         for cls_id, name in enumerate(YOLO_NAMES):
             print(f"    {name}: {class_counts[cls_id]}")
     print()
-    print("Classes mapped (VisDrone 0-indexed -> YOLO):")
-    print("  3: car               -> 0: car")
-    print("  4: van               -> 1: van")
-    print("  5: truck             -> 2: truck")
-    print("  6: tricycle          -> 3: rickshaw")
-    print("  7: awning-tricycle   -> 3: rickshaw")
-    print("  8: bus               -> 4: bus")
-    print("  9: motor             -> 5: motorcycle")
+    print("Classes mapped (VisDrone MOT -> YOLO):")
+    print("  4: car               -> 0: car")
+    print("  5: van               -> 1: van")
+    print("  6: truck             -> 2: truck")
+    print("  7: tricycle          -> 3: rickshaw")
+    print("  8: awning-tricycle   -> 3: rickshaw")
+    print("  9: bus               -> 4: bus")
+    print(" 10: motor             -> 5: motorcycle")
     print()
-    print("Ignored VisDrone classes: 0: pedestrian, 1: people, 2: bicycle")
+    print("Ignored VisDrone MOT classes: 0: ignored, 1: pedestrian, 2: people, 3: bicycle, 11: others")
 
 
 if __name__ == "__main__":
