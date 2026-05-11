@@ -30,10 +30,42 @@ def main():
 
     if args.resume:
         model = YOLO(args.resume)
-    else:
-        model = YOLO(model_path)
+        results = model.train(**train_cfg)
+        print(f"Training complete. Results saved to: {results.save_dir}")
+        return
 
-    results = model.train(**train_cfg)
+    phase1_epochs = 20
+    total_epochs = train_cfg.get("epochs", 300)
+    phase2_epochs = max(1, total_epochs - phase1_epochs)
+
+    phase1_cfg = {
+        **train_cfg,
+        "freeze": 10,
+        "epochs": phase1_epochs,
+        "lr0": 0.001,
+        "name": train_cfg.get("name", "yolo26_vehicle") + "_phase1",
+    }
+
+    model = YOLO(model_path)
+    print(f"Phase 1: frozen backbone, {phase1_epochs} epochs, lr={phase1_cfg['lr0']}")
+    model.train(**phase1_cfg)
+
+    phase1_weights = (
+        Path(phase1_cfg.get("project", "runs/train"))
+        / phase1_cfg["name"]
+        / "weights"
+        / "last.pt"
+    )
+
+    phase2_cfg = {
+        **train_cfg,
+        "epochs": phase2_epochs,
+        "name": train_cfg.get("name", "yolo26_vehicle") + "_phase2",
+    }
+
+    model = YOLO(str(phase1_weights))
+    print(f"Phase 2: full fine-tune, {phase2_epochs} epochs, lr={phase2_cfg.get('lr0', 0.0002)}")
+    results = model.train(**phase2_cfg)
     print(f"Training complete. Results saved to: {results.save_dir}")
 
 
