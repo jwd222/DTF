@@ -55,13 +55,12 @@ Class mapping (defined in `configs/data.yaml`):
 
 | ID | Class |
 |----|-------|
-| 0  | compact_car |
-| 1  | suv |
-| 2  | van |
-| 3  | truck |
+| 0  | car |
+| 1  | van |
+| 2  | truck |
+| 3  | rickshaw |
 | 4  | bus |
-| 5  | rickshaw |
-| 6  | motorcycle |
+| 5  | motorcycle |
 
 ### 2.2 Convert VisDrone MOT Annotations
 
@@ -71,31 +70,48 @@ If you have VisDrone MOT-format data (`sequences/` + `annotations/`):
 python scripts/convert_visdrone_mot_to_yolo.py \
     --input-dir /path/to/VisDrone2019-MOT-train \
     --output-dir data/vehicle_dataset \
+    --max-per-class 60000 \
     --copy-images
 ```
 
-This converts MOT annotations to YOLO format, mapping VisDrone classes to the 7 vehicle classes:
+This converts MOT annotations to YOLO format, mapping VisDrone MOT classes to the 6 vehicle classes:
 
-| VisDrone Class | YOLO ID | YOLO Class |
-|----------------|---------|------------|
-| car (3) | 0 | compact_car |
-| van (4) | 2 | van |
-| truck (5) | 3 | truck |
-| tricycle (6) | 5 | rickshaw |
-| awning-tricycle (7) | 5 | rickshaw |
-| bus (8) | 4 | bus |
-| motor (9) | 6 | motorcycle |
+| VisDrone MOT Class | YOLO ID | YOLO Class |
+|---------------------|---------|------------|
+| car (4) | 0 | car |
+| van (5) | 1 | van |
+| truck (6) | 2 | truck |
+| tricycle (7) | 3 | rickshaw |
+| awning-tricycle (8) | 3 | rickshaw |
+| bus (9) | 4 | bus |
+| motor (10) | 5 | motorcycle |
 
-Ignored: pedestrian (0), people (1), bicycle (2). Use `--val-ratio` to control the train/val split (default 15%). Use `--copy-images` for copies; otherwise symlinks are created.
+Ignored: ignored regions (0), pedestrian (1), people (2), bicycle (3), others (11).
 
-If you have COCO-format annotations:
+**Class balancing with `--max-per-class`:**
 
-```python
-from ultralytics.data.converter import convert_coco
-convert_coco("annotations.json", use_segments=False)
+The default `--max-per-class 60000` caps each class at 60,000 instances to prevent class imbalance (e.g., car typically has 10x more instances than bus). When enabled:
+
+- Processing order of sequences and frames is **randomly shuffled** for fair undersampling (controlled by `--seed`).
+- **Entire frames are skipped** when any class in the frame has already reached the cap. This avoids partial labels (where some objects are removed from an image but the image is still included, causing false negatives during training).
+- Use `--max-per-class 0` to disable undersampling and include all instances.
+
+Additional options: `--val-ratio` controls the train/val split (default 15%). Use `--copy-images` for copies; otherwise symlinks are created.
+
+### 2.3 Visualize Dataset
+
+Before training, verify dataset quality:
+
+```bash
+python scripts/visualize_dataset.py \
+    --data configs/data.yaml \
+    --n-samples 16 \
+    --output visualizations
 ```
 
-### 2.3 Update Dataset Config
+This randomly samples images from train/val splits, overlays bounding boxes with class names, and saves annotated images.
+
+### 2.4 Update Dataset Config
 
 Edit `configs/data.yaml` to point to your dataset root:
 
@@ -121,8 +137,17 @@ Edit `configs/train_args.yaml` before training. Key parameters:
 | `imgsz` | `960` | Input resolution — **do not reduce below 960** for drone footage |
 | `batch` | `8` | Reduce to 4 or 2 if GPU memory is limited |
 | `optimizer` | `MuSGD` | Multi-step SGD |
-| `copy_paste` | `0.1` | Copy-paste augmentation for small objects |
-| `patience` | `50` | Early stopping patience |
+| `lr0` | `0.001` | Initial learning rate |
+| `lrf` | `0.01` | Final LR factor (LR decays to `lr0 * lrf`) |
+| `patience` | `80` | Early stopping patience (epochs without improvement) |
+| `box` | `7.5` | Box loss weight |
+| `cls` | `2.0` | Classification loss weight |
+| `dfl` | `1.5` | Distribution focal loss weight |
+| `copy_paste` | `0.0` | Copy-paste augmentation (increase to 0.1–0.2 for small objects) |
+| `mosaic` | `1.0` | Mosaic augmentation probability |
+| `mixup` | `0.0` | Mixup augmentation (try 0.1 for underrepresented classes) |
+| `close_mosaic` | `10` | Disable mosaic for last N epochs |
+| `save_period` | `10` | Save checkpoint every N epochs |
 
 ### 3.2 Start Training
 
@@ -150,6 +175,7 @@ Watch for:
 - `mAP50` plateauing (should reach >0.80 for decent results)
 - `box_loss` decreasing steadily
 - Overfitting signs: val loss rising while train loss drops
+- EarlyStopping: if best results are at a very early epoch (e.g., epoch 12), learning rate may be too high or the model is converging to a suboptimal solution. Consider adjusting `lr0`, `lrf`, or switching optimizer.
 
 ---
 
@@ -173,19 +199,18 @@ Key metrics to check:
 |--------|--------|---------|
 | `mAP50` | > 0.80 | Mean AP at IoU 0.5 |
 | `mAP50-95` | > 0.50 | Mean AP at IoU 0.5:0.95 |
-| Per-class AP | > 0.60 | Each of the 7 vehicle classes |
+| Per-class AP | > 0.60 | Each of the 6 vehicle classes |
 
 Per-class output example:
 
 ```
-mAP50:    0.8543
-mAP50-95: 0.5612
-  compact_car: AP@50-95 = 0.6234
-  suv: AP@50-95 = 0.5891
-  van: AP@50-95 = 0.5123
+mAP50:    0.8700
+mAP50-95: 0.6230
+  car: AP@50-95 = 0.6234
+  van: AP@50-95 = 0.5891
   truck: AP@50-95 = 0.4901
-  bus: AP@50-95 = 0.4567
   rickshaw: AP@50-95 = 0.5432
+  bus: AP@50-95 = 0.4567
   motorcycle: AP@50-95 = 0.6789
 ```
 
@@ -195,7 +220,9 @@ If mAP is too low:
 - Increase `epochs` to 500
 - Add more training data for underperforming classes
 - Adjust `copy_paste` and `mixup` augmentation strength
+- Increase `cls` loss weight for poor-performing classes
 - Verify annotation quality
+- Check for class imbalance in the training set (see Phase 2.2)
 
 ---
 
@@ -272,7 +299,7 @@ data/reid_crops/
     └── ...
 ```
 
-Each identity folder contains cropped and resized (256×128) patches from one tracked vehicle.
+Each identity folder contains cropped and resized (256x128) patches from one tracked vehicle.
 
 If you have COCO-style video annotations instead:
 
@@ -304,9 +331,32 @@ The script automatically detects identity count from `data/reid_crops/train/` an
 
 ## Phase 7: Run Inference
 
-### 7.1 Single-Stream Inference with Visualization
+The inference script (`scripts/inference.py`) supports three source types:
 
-Using the Ultralytics built-in tracker:
+### 7.1 Source Types
+
+| Source Type | `--source-type` | Description | `--source` value |
+|-------------|-----------------|-------------|-----------------|
+| Video | `video` | Single video file | Path to `.mp4`, `.avi`, etc. |
+| Images | `images` | Directory of images | Path to image directory |
+| MOT | `mot` | VisDrone MOT dataset | Path to MOT dataset (contains `sequences/`) |
+
+With `--source-type auto` (default), the type is detected automatically:
+- Directory with a `sequences/` subdirectory → `mot`
+- Directory without `sequences/` → `images`
+- File → `video`
+
+### 7.2 Output Options
+
+| Flag | Description |
+|------|-------------|
+| `--save-video PATH` | Save annotated output as a video file (`.mp4`) |
+| `--save-images DIR` | Save annotated output as individual images to a directory |
+| `--show` | Display frames in a window (requires GUI) |
+
+Both `--save-video` and `--save-images` can be used simultaneously.
+
+### 7.3 Inference on a Video File
 
 ```bash
 python scripts/inference.py \
@@ -315,13 +365,58 @@ python scripts/inference.py \
     --imgsz 960 \
     --conf 0.25 \
     --device 0 \
-    --output output/tracked_drone1.mp4 \
+    --track \
+    --save-video output/tracked_drone1.mp4 \
     --show
 ```
 
-Press `q` to quit the display window.
+### 7.4 Inference on an Image Directory
 
-### 7.2 Using the Pipeline (Stream Worker)
+```bash
+python scripts/inference.py \
+    --source data/test_images/ \
+    --source-type images \
+    --weights runs/train/yolo26_vehicle/weights/best.pt \
+    --imgsz 960 \
+    --conf 0.25 \
+    --save-images output/detected_images/
+```
+
+### 7.5 Inference on VisDrone MOT Sequences
+
+For MOT data (directory containing `sequences/`), each sequence is processed independently:
+
+```bash
+python scripts/inference.py \
+    --source /path/to/VisDrone2019-MOT-val \
+    --source-type mot \
+    --weights runs/train/yolo26_vehicle/weights/best.pt \
+    --imgsz 960 \
+    --conf 0.25 \
+    --track \
+    --save-video output/mot_inference/ \
+    --mot-fps 30.0
+```
+
+- `--save-video DIR`: saves one `.mp4` per sequence into the directory
+- `--save-images DIR`: saves one subdirectory of images per sequence
+- `--mot-fps`: frame rate for output videos (default 30.0)
+- `--source-type auto` will also detect MOT format if the directory contains `sequences/`
+
+To process a single MOT sequence directly:
+
+```bash
+python scripts/inference.py \
+    --source /path/to/VisDrone2019-MOT-val/sequences/uavm0001 \
+    --source-type mot \
+    --weights runs/train/yolo26_vehicle/weights/best.pt \
+    --track \
+    --save-images output/seq_uavm0001/
+```
+
+Press `q` to quit the display window when using `--show`.
+
+### 7.6 Using the Pipeline (Stream Worker)
 
 Update `config.yaml` with your paths and run:
 
@@ -338,7 +433,7 @@ tracking:
 
 Then launch the stream worker through the application entry point.
 
-### 7.3 Config Tuning
+### 7.7 Config Tuning
 
 Key config parameters for the tracker (`config.yaml` → `tracking`):
 
@@ -403,14 +498,28 @@ python scripts/evaluate_mot.py \
 ```yaml
 # configs/train_args.yaml
 batch: 4        # reduce from 8
-imgsz: 640      # only as last resort, hurts small-object detection
+# Do NOT reduce imgsz below 960 — drone objects are already very small
+# If batch=4 still OOMs, consider gradient accumulation or a smaller model variant
 ```
 
+**Training plateaus early (best epoch < 20):**
+- Lower `lr0` to `0.0005` or `0.0001`
+- Increase `lrf` to `0.1` (slower LR decay)
+- Try `optimizer: AdamW`
+- Check for severe class imbalance — re-run dataset conversion with `--max-per-class`
+
 **Low mAP on small vehicles (motorcycles, rickshaws):**
-- Increase `copy_paste` to `0.2`
+- Increase `copy_paste` to `0.1`–`0.2`
+- Increase `mixup` to `0.1`
 - Increase training epochs
 - Ensure dataset has sufficient small-object annotations
+- Increase `cls` loss weight (e.g., `cls: 3.0`)
 - Do not reduce `imgsz` below 960
+
+**Class imbalance (e.g., car dominates training):**
+- Re-run `convert_visdrone_mot_to_yolo.py` with `--max-per-class 60000` (default)
+- Check the "Final class distribution" output in the conversion log
+- If imbalance persists, lower `--max-per-class` further
 
 **Tracker producing too many ID switches:**
 - Lower `appearance_thresh` in `config.yaml` (try `0.15`)
@@ -425,7 +534,7 @@ imgsz: 640      # only as last resort, hurts small-object detection
 **Slow inference:**
 - Use TensorRT engine (Phase 5)
 - Disable Re-ID if not needed (`tracking.reid.enabled: false`)
-- Reduce `imgsz` to 640 (trade-off with accuracy)
+- Do not reduce `imgsz` below 960 for drone footage — objects will become undetectable
 
 ### File Reference
 
@@ -434,14 +543,16 @@ imgsz: 640      # only as last resort, hurts small-object detection
 | `config.yaml` | Runtime pipeline configuration |
 | `configs/data.yaml` | YOLO dataset config (classes + paths) |
 | `configs/train_args.yaml` | YOLOv26 training hyperparameters |
+| `scripts/_visdrone_constants.py` | Shared VisDrone-to-YOLO class mappings |
 | `scripts/train.py` | Launch detector training |
 | `scripts/validate.py` | Evaluate detector mAP |
 | `scripts/export_model.py` | Export to TensorRT |
+| `scripts/inference.py` | Single-stream inference + visualization (video/images/MOT) |
+| `scripts/visualize_dataset.py` | Visualize YOLO dataset samples with labels |
 | `scripts/train_reid.py` | Train OSNet Re-ID model |
 | `scripts/prepare_reid_data.py` | Crop vehicle patches from COCO+video tracks |
 | `scripts/prepare_reid_data_mot.py` | Crop vehicle patches from VisDrone MOT data |
-| `scripts/convert_visdrone_mot_to_yolo.py` | Convert VisDrone MOT to YOLO format |
-| `scripts/inference.py` | Single-stream inference + visualization |
+| `scripts/convert_visdrone_mot_to_yolo.py` | Convert VisDrone MOT to YOLO format (with class balancing) |
 | `scripts/evaluate_mot.py` | MOT metrics evaluation |
 | `src/drone_traffic/models/yolo26_detector.py` | YOLOv26 detector wrapper |
 | `src/drone_traffic/tracking/reid.py` | Re-ID ONNX inference module |

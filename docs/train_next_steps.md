@@ -5,9 +5,9 @@
 ### Dataset fixes (already applied to code)
 
 1. **Removed `suv` class** — had zero samples in VisDrone data. Renumbered to 6 classes.
-2. **Renamed `compact_car` → `car`** — clearer label, matches VisDrone `car` (category 3).
-3. **Updated class mapping** in `_visdrone_constants.py`:
-   - `3: car → 0`, `4: van → 1`, `5: truck → 2`, `6/7: rickshaw → 3`, `8: bus → 4`, `9: motorcycle → 5`
+2. **Renamed `compact_car` → `car`** — clearer label, matches VisDrone MOT `car` (category 4).
+3. **Updated class mapping** in `_visdrone_constants.py` (VisDrone MOT category IDs):
+   - `4: car → 0`, `5: van → 1`, `6: truck → 2`, `7/8: rickshaw → 3`, `9: bus → 4`, `10: motorcycle → 5`
 4. **Added `--max-per-class` undersampling** to the converter script.
 5. **Increased `cls` loss weight** (`0.5 → 2.0`) and **added focal loss** (`fl_gamma: 2.0`) to penalize misclassifying rare classes.
 6. **Lowered learning rate** (`0.01 → 0.001`), **reduced aggressive augmentation** (`scale 0.5→0.3`, `mixup 0.1→0.0`, `copy_paste 0.1→0.0`, `degrees 5→3`), **increased patience** (`50 → 80`).

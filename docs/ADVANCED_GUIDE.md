@@ -85,16 +85,16 @@ data/
             └── ...
 ```
 
-**Class mapping** (configurable via `models.detector.num_classes`):
+**Class mapping** (from `configs/data.yaml`, VisDrone MOT):
 
 | Class ID | Label |
 |----------|-------|
 | 0 | car |
-| 1 | truck |
-| 2 | bus |
-| 3 | motorcycle |
-| 4 | bicycle |
-| 5 | pedestrian |
+| 1 | van |
+| 2 | truck |
+| 3 | rickshaw |
+| 4 | bus |
+| 5 | motorcycle |
 
 If you have COCO JSON annotations, convert to YOLO format:
 

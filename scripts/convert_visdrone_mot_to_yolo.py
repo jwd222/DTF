@@ -70,7 +70,7 @@ def main():
     parser.add_argument("--output-dir", type=str, default="data/vehicle_dataset", help="Output YOLO dataset directory")
     parser.add_argument("--val-ratio", type=float, default=0.15, help="Fraction of sequences to use for validation")
     parser.add_argument("--copy-images", action="store_true", help="Copy images instead of creating symlinks")
-    parser.add_argument("--max-per-class", type=int, default=0, help="Cap instances per class (0 = no limit). Overrepresented classes are randomly undersampled per-frame.")
+    parser.add_argument("--max-per-class", type=int, default=60000, help="Cap instances per class (0 = no limit). Entire frames are skipped when any class exceeds the cap, preventing partial labels. Processing order is randomized for fair undersampling.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducible undersampling")
     args = parser.parse_args()
 
@@ -104,6 +104,9 @@ def main():
     print(f"Train sequences: {len(train_sequences)}")
     print(f"Val sequences:   {len(val_sequences)}")
 
+    processing_order = sequence_names[:]
+    random.shuffle(processing_order)
+
     for split, seq_set in [("train", train_sequences), ("val", val_sequences)]:
         img_dir = output_dir / "images" / split
         lbl_dir = output_dir / "labels" / split
@@ -117,7 +120,7 @@ def main():
     skipped_small = 0
     skipped_undersample = 0
 
-    for seq_name in sequence_names:
+    for seq_name in processing_order:
         split = "val" if seq_name in val_sequences else "train"
         seq_img_dir = sequences_dir / seq_name
         ann_file = annotations_dir / f"{seq_name}.txt"
@@ -135,6 +138,8 @@ def main():
 
         if not image_files:
             continue
+
+        random.shuffle(image_files)
 
         img_size_cache: dict[str, tuple[int, int]] = {}
         first_size = _get_image_size(image_files[0])
@@ -181,6 +186,14 @@ def main():
             frame_id = int(img_path.stem)
             dest_name = f"{seq_name}_{img_path.name}"
 
+            anns = frame_anns.get(frame_id, [])
+            lbl_path = lbl_dir_out / f"{seq_name}_{img_path.stem}.txt"
+
+            if args.max_per_class > 0:
+                if any(class_counts[ann[0]] >= args.max_per_class for ann in anns):
+                    skipped_undersample += len(anns)
+                    continue
+
             if args.copy_images:
                 shutil.copy2(img_path, img_dir_out / dest_name)
             else:
@@ -188,19 +201,6 @@ def main():
                     (img_dir_out / dest_name).symlink_to(img_path.resolve())
                 except OSError:
                     shutil.copy2(img_path, img_dir_out / dest_name)
-
-            anns = frame_anns.get(frame_id, [])
-            lbl_path = lbl_dir_out / f"{seq_name}_{img_path.stem}.txt"
-
-            if args.max_per_class > 0:
-                kept = []
-                for ann in anns:
-                    cls_id = ann[0]
-                    if class_counts[cls_id] >= args.max_per_class:
-                        skipped_undersample += 1
-                        continue
-                    kept.append(ann)
-                anns = kept
 
             with open(lbl_path, "w") as f:
                 img_w, img_h = img_size_cache[img_path.stem]
